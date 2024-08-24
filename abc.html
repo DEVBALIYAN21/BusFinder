@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Route Details</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="icon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        /* Basic Styles */
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            background: linear-gradient(to right, #6dd5fa, #2980b9);
+            box-sizing: border-box;
+        }
+
+        /* Navbar Styling */
+        .navbar {
+
+            background-color: white; 
+            border-bottom-style: solid;
+            border-color:#ff6348;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            
+            
+        }
+
+        .navbar .logo img {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff5d5d;
+            mix-blend-mode: multiply; /* This will blend the image with the background */
+        }
+        .logo img{
+            height: 100px;
+        }
+        .logo{
+            margin-right: 10%;
+           
+        }
+        
+
+        .navbar .logo span {
+            color: #333;
+        }
+
+        .navbar .nav-links {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar .nav-links li {
+            margin: 0 10px;
+        }
+
+        .navbar .nav-links li a {
+            text-decoration: none;
+            font-size: 14px;
+            color: #333;
+            transition: color 0.3s ease;
+        }
+
+        .navbar .nav-links li a:hover {
+            color: #007bff;
+        }
+
+        .navbar .login {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .navbar .login:hover {
+            background-color: #0056b3;
+        }
+
+        /* Main Container */
+        .container {
+            padding: 15px;
+            max-width: 1000px;
+            margin: 20px auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            
+        }
+
+        .bus-card {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+            text-align: center;
+            
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        p, li {
+            font-size: 16px;
+            margin: 8px 0;
+        }
+
+        .route-details {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            justify-content: center;
+            align-items: center;
+            display: none; /* Hidden by default */
+        }
+
+        .route-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .route-details li {
+            padding: 5px 10px;
+            background-color: #ff5d5d;
+            color: white;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .route-details li.arrow {
+            background-color: transparent;
+            color: turquoise;
+            font-size: 18px;
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+
+        .toggle-route {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .toggle-route:hover {
+            background-color: #0056b3;
+        }
+
+        .loading-circle {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading-circle.show {
+            display: block;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            padding-top: 50px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 15px;
+            border: 1px solid #888;
+            width: 90%;
+        }
+
+        .close {
+            color: #aaaaaa;
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .icon {
+            font-size: 18px;
+            margin-right: 8px;
+        }
+
+        .gradient-icon {
+            background: linear-gradient(20deg, #fcb045, #fd1d1d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.2em;
+            margin-right: 8px;
+            display: inline-block;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        footer {
+            border-top-style: solid;
+            border-color:#ff6348;
+            margin-top: 20px;
+            padding: 10px 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+        .centerdtext{
+            font-size:xx-large;
+            color: mediumseagreen;
+            margin-right: 25%;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                max-height: 150px;
+                width: 100%;
+                
+                background-color: white;
+            }
+            .centerdtext{
+                font-size:medium;
+                color: rgb(22, 66, 239);
+            }
+
+            .navbar .logo img {
+                height: 60px;
+                mix-blend-mode:multiply;/* Adjust as needed */
+            }
+
+            .navbar .nav-links {
+                display: block;
+                margin-top: 10px;
+            }
+
+            .navbar .nav-links li {
+                margin: 5px 0;
+            }
+
+            .navbar .login {
+                font-size: 12px;
+            }
+
+            .container {
+                
+                width: 100%;
+            }
+
+            .bus-card {
+                padding: 10px;
+
+            }
+
+            .route-details li {
+                font-size: 12px;
+            }
+            .centerdtext{
+                font-size:larger;
+                margin-left: 9%;
+                color: mediumseagreen;
+            }
+            
+
+            .toggle-route, .get-directions {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+        }
+        /* Back Button Styling */
+        .back {
+            display: flex;
+            align-items: center;
+            background-color: rgba(255, 165, 2,1); /* Background color */
+            color: rgba(6, 53, 241, 0.8); /* Text color */
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none; /* Remove underline */
+            font-size: 1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease;
+        }
+        
+        .back i {
+            font-size: 20px; /* Adjust size as needed */
+            margin-right: 8px; /* Space between icon and text */
+            color: black; /* Icon color */
+        }
+        
+        .back:hover {
+            background-color: #ff6348; /* Change background on hover */
+        }
+
+
+    </style>
+</head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo">
+            <img src="icon.png" alt="Bus Finder Logo">
+        </div>      
+        <a class="back" href="javascript:history.back()">
+            <i class="fa fa-home"></i> <!-- Font Awesome home icon -->
+            Search Diffrent Route
+        </a>
+        
+        
+
+    </div>
+
+    <!-- Main Content -->
+    <div class="container" id="busDetails">
+        <!-- Bus details will be displayed here -->
+        <div class="loading-circle" id="loading-circle">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        &copy; 2024 Bus Finder. All rights reserved.
+    </footer>
+
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA-Dl0UYvx2na0oG0mXPPSGxRPxe7-uMfE",
+            authDomain: "bus-tracking-2b76e.firebaseapp.com",
+            databaseURL: "https://bus-tracking-2b76e-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "bus-tracking-2b76e",
+            storageBucket: "bus-tracking-2b76e.appspot.com",
+            messagingSenderId: "964312599473",
+            appId: "1:964312599473:web:82dc639eaf2d6451a48b90",
+            measurementId: "G-HDBKHSTKML"
+        };
+    
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    
+        // Helper function to get URL parameters
+        function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            const regex = new RegExp(`[?&]${name}(=([^&#]*)|&|#|$)`),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+    
+        // Get bus IDs from URL
+        const busIds = getParameterByName('buses');
+        const busno='abc';
+    
+        if (!busIds) {
+            alert('Please provide bus IDs in the URL parameters.');
+        } else {
+            // Split the bus IDs by comma
+            const busIdArray = busIds.split(',');
+    
+            // Show loading circle
+            document.getElementById('loading-circle').classList.add('show');
+    
+            // Fetch and display bus details for each busId
+            Promise.all(busIdArray.map(busId => db.ref('buses/' + busId + '/Current_Details').once('value')))
+                .then(snapshots => {
+                    const detailsContainer = document.getElementById('busDetails');
+                    detailsContainer.innerHTML = '';
+    
+                    snapshots.forEach(snapshot => {
+                        const busDetails = snapshot.val();
+                        if (busDetails) {
+                            const people = busDetails.people_count || 'N/A';
+                            const busRoute = busDetails.Bus_Route || [];
+                            const currentStop = busDetails.Current || 'N/A';
+                            const previousStop = busDetails.Previous || 'N/A';
+                            const latitude = busDetails.latitude || 'N/A';
+                            const longitude = busDetails.longitude || 'N/A';
+                            // Predict the next stop based on the current stop
+                            let predictedNextStop = 'End of Route';
+                            const currentIndex = busRoute.indexOf(currentStop);
+                            if (currentIndex !== -1 && currentIndex < busRoute.length - 1) {
+                                predictedNextStop = busRoute[currentIndex + 1];
+                            }
+    
+                            detailsContainer.innerHTML += `
+                                <div class="bus-card">
+<h2 style="color: #003366; font-size: 2em; font-weight: bold; margin-bottom: 10px;">
+    <i class="fas fa-bus icon" style="color: #00bfae; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4); font-size: 2.2em; margin-right: 10px; transform: rotate(10deg);"></i>
+    Bus ID: ${snapshot.ref.parent.key} Details
+</h2>
+<p><i class="fas fa-users icon gradient-icon"></i> People Count: ${people}</p>
+<p><i class="fas fa-arrow-right icon gradient-icon"></i> Current Stop: ${currentStop}</p>
+
+<p><i class="fas fa-arrow-right icon gradient-icon"></i> Next Stop: ${predictedNextStop}</p>
+
+                                    <button class="toggle-route btn btn-primary" data-id="${snapshot.ref.parent.key}">Show Route</button>
+                                <button class="btn btn-success get-directions" data-id="${snapshot.ref.parent.key}">Get Directions</button>
+
+
+                                    <div class="route-details" id="route-${snapshot.ref.parent.key}" style="display: none;">
+                                        <ul>
+                                            ${busRoute.map((stop, index, array) => `
+                                                <li>${stop}</li>
+                                                ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
+                                            `).join('')}
+                                        </ul>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            detailsContainer.innerHTML += `
+                                <div class="bus-card">
+                                    <h2 style="color:#007bff">Bus ID: ${snapshot.ref.parent.key} Details</h2>
+                                    <p>No data found for this bus.</p>
+                                </div>
+                            `;
+                        }
+                        
+                    });
+    
+                    // Hide loading circle
+                    document.getElementById('loading-circle').classList.remove('show');
+                })
+                .catch(error => {
+                    console.error("Error fetching data: ", error);
+                    document.getElementById('loading-circle').classList.remove('show');
+                });
+        }
+    
+        // Function to toggle route details
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('toggle-route')) {
+                const busId = event.target.getAttribute('data-id');
+                const routeElement = document.getElementById(`route-${busId}`);
+                if (routeElement.style.display === 'none' || routeElement.style.display === '') {
+                    routeElement.style.display = 'block';
+                    event.target.textContent = 'Hide Route';
+                } else {
+                    routeElement.style.display = 'none';
+                    event.target.textContent = 'Show Route';
+                }
+            }
+        });
+
+        // Function to handle "Get Directions" button clicks
+// Function to handle "Get Directions" button clicks
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('get-directions')) {
+        const busId = event.target.getAttribute('data-id'); // Get the bus ID
+       
+        // Construct the URL with the bus ID instead of lat/lng
+        const mapsUrl = `maps.html?busId=${busId}`;
+        window.location.href = mapsUrl;
+    }
+});
+
+
+    </script>
+    
+</body>
+
+</html>
+

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Bus Tracking</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="icon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
+    <!-- Custom Styles -->
+    <style>
+        /* Global Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styles */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to right, #4e54c8, #8f94fb);
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Navbar Styling */
+        nav {
+            background-color: rgba(0, 0, 0, 0.5); 
+            border-bottom-style: solid;
+            border-color:#ff6348;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 1rem;
+        }
+
+        /* Title */
+        h1 {
+            text-align: center;
+            padding: 20px;
+            font-size: 2rem;
+            margin: 20px auto;
+        }
+
+        /* Map Container */
+        #map {
+            height: 70vh;
+            width: 100%;
+            margin: 20px auto;
+        }
+
+        /* Location Button */
+        .location-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #ffa502;
+            border: none;
+            border-radius: 50%;
+            margin-bottom: 5%;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s ease;
+        }
+
+        .location-btn:hover {
+            background-color: #ff6348;
+        }
+
+        .location-btn img {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* Footer Styles */
+        footer {
+            background-color: rgba(0, 0, 0, 0.5); 
+            border-style: solid;
+            border-color:#ff6348;
+            border-left-style: none;
+            border-right-style: none;
+            border-bottom-style: none;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        /* Responsive Styling */
+        @media (max-width: 768px) {
+            nav{
+                flex-direction: column;
+               
+            }
+            nav a {
+                padding-bottom: 20px;
+                font-size: 0.9rem;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            #map {
+                height: 60vh;
+            }
+            .location-btn{
+                margin-bottom: 20%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            nav {
+                flex-direction: column;
+            }
+
+            nav a {
+                margin: 5px 0;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            #map {
+                height: 50vh;
+            }
+
+            .location-btn {
+                padding: 5px;
+                margin-bottom: 40%;
+            }
+
+            .location-btn img {
+                width: 24px;
+                height: 24px;
+                
+            }
+        }
+    </style>
+
+    <!-- Firebase and Leaflet Script -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA-Dl0UYvx2na0oG0mXPPSGxRPxe7-uMfE",
+            authDomain: "bus-tracking-2b76e.firebaseapp.com",
+            databaseURL: "https://bus-tracking-2b76e-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "bus-tracking-2b76e",
+            storageBucket: "bus-tracking-2b76e.appspot.com",
+            messagingSenderId: "964312599473",
+            appId: "1:964312599473:web:82dc639eaf2d6451a48b90",
+            measurementId: "G-HDBKHSTKML"
+        };
+    
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    
+        let userMarker, busMarker, routeControl, map;
+    
+        // Initialize the map and tracking
+        window.addEventListener('load', () => {
+            initMapAndTracking();
+        });
+    
+        function initMapAndTracking() {
+            // Get bus ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const busId = urlParams.get('busId');
+    
+            if (!busId) {
+                console.error('No bus ID provided');
+                return;
+            }
+    
+            // Initialize map
+            const defaultLat = 13.0261;
+            const defaultLng = 77.6374;
+            map = L.map('map').setView([defaultLat, defaultLng], 13);
+    
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+    
+            // Markers and icons
+            const userIcon = L.icon({
+                iconUrl: 'https://img.icons8.com/ios-filled/50/000000/user-location.png',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+    
+            const busIcon = L.icon({
+                iconUrl: 'https://img.icons8.com/ios-filled/50/000000/bus.png',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+    
+            userMarker = L.marker([defaultLat, defaultLng], { icon: userIcon }).addTo(map);
+            busMarker = L.marker([defaultLat, defaultLng], { icon: busIcon }).addTo(map);
+    
+            routeControl = L.Routing.control({
+                waypoints: [],
+                routeWhileDragging: true,
+                createMarker: () => null,
+                routeLine: (route) => L.polyline(route.coordinates, { color: 'blue', weight: 5 }),
+                show: false
+            }).addTo(map);
+    
+            // Get user location initially
+            getUserLocation(busId);
+    
+            // Start fetching bus data at 1-second intervals
+            setInterval(() => fetchBusData(busId), 1000);
+        }
+    
+        // Get user location
+        function getUserLocation(busId) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    userMarker.setLatLng([lat, lon]);
+                    map.setView([lat, lon], 13);
+    
+                    // Fetch initial bus data
+                    fetchBusData(busId);
+                }, error => {
+                    console.error('Error getting user location:', error);
+                });
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+            }
+        }
+    
+        // Fetch bus data
+        function fetchBusData(busId) {
+            const busRef = db.ref(`buses/${busId}/Current_Details`);
+            busRef.on('value', snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const latitude = data.latitude;
+                    const longitude = data.longitude;
+                    console.log("Fetching bus data");
+    
+                    if (latitude && longitude) {
+                        busMarker.setLatLng([latitude, longitude]);
+    
+                        // Update route between user and bus
+                        const waypoints = [
+                            userMarker.getLatLng(),
+                            L.latLng(latitude, longitude)
+                        ];
+    
+                        routeControl.setWaypoints(waypoints);
+                    }
+                }
+            });
+        }
+    </script>
+    
+</head>
+<body>
+    <!-- Navbar -->
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="javascript:history.back()">Track Another Bus</a>
+        
+    </nav>
+
+    <!-- Title -->
+    <h1>Real-Time Bus Tracking</h1>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Refresh Location Button -->
+    <button class="location-btn" onclick="getUserLocation()">
+        <img src="https://img.icons8.com/?size=100&id=11675&format=png&color=000000" alt="Refresh Location">
+    </button>
+    <!-- Footer -->
+    <footer>
+        &copy; 2024 Real-Time Bus Tracking | Made By Dev Baliyan
+    </footer>
+</body>
+</html>

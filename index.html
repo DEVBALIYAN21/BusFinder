@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Your Route</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="icon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+    <style>
+        /* Basic Styles */
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #6dd5fa, #2980b9);
+            color: #333;
+            box-sizing: border-box;
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            border-bottom-style: solid;
+            border-color: #ff5d5d;
+            background-color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: center; /* Centers items horizontally */
+            align-items: center; /* Centers items vertically */
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            max-height: 80px;
+        }
+        
+        .navbar .logo {
+            margin-right: 10px; /* Adjusted margin to prevent excessive spacing */
+        }
+        
+        .navbar .logo img {
+            height: 100px; /* Set the height for the logo */
+        }
+        
+        .navbar p {
+            margin: 0; /* Remove default margin */
+            font-size: 20px; /* Adjust font size if needed */
+            color: #ff5d5d; /* Set text color */
+            font-weight: bold;
+            font-family: sans-serif;
+        }
+        
+        .navbar .login {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .navbar .login:hover {
+            background-color: #0056b3;
+        }
+        
+        /* Main Container */
+        .container {
+            text-align: center;
+            padding: 50px 20px;
+            color: white;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        /* Form Styling */
+        .form-container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            display: inline-block;
+            animation: pop-up 0.5s ease-in-out;
+        }
+        .centerdtext{
+            font-size:xx-large;
+            color: mediumseagreen;
+            margin-right: 25%;
+        }
+
+        @keyframes pop-up {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .form-group input {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 30px;
+            border: none;
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group button {
+            padding: 15px 30px;
+            background-color: #ff5d5d;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            margin-top: 10px;
+        }
+
+        footer {
+            border-top-style: solid;
+            border-color:#ff6348;
+            margin-top: 20px;
+            padding: 10px 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                max-height: 40px;
+                background-color: white;
+            }
+            footer{
+                position: fixed;
+            }
+            .centerdtext{
+                font-size:medium;
+                color: rgb(22, 66, 239);
+            }
+
+            .navbar .logo img {
+                height: 60px;
+                mix-blend-mode:multiply;/* Adjust as needed */
+            }
+
+            .navbar .nav-links {
+                display: block;
+                margin-top: 10px;
+            }
+
+            .navbar .nav-links li {
+                margin: 5px 0;
+            }
+
+            .navbar .login {
+                font-size: 12px;
+            }
+
+            .container {
+                padding: 10px;
+                margin: 10px;
+            }
+
+            .bus-card {
+                padding: 10px;
+            }
+
+            .route-details li {
+                font-size: 12px;
+            }
+            .centerdtext{
+                font-size:larger;
+                margin-left: 9%;
+                color: mediumseagreen;
+            }
+            
+
+            .toggle-route, .get-directions {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo">
+            <img src="icon.png" alt="Bus Finder Logo">
+        </div>
+        <p class="find"> Find Your Best Bus</p>
+        
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="header">
+            <h1>Find the best route to your destination</h1>
+            <p style="color: yellow;">By Bus Finder</p>
+        </div>
+
+        <div class="form-container">
+            <form id="routeForm">
+                <div class="form-group">
+                    <input type="text" id="start" placeholder="Starting From">
+                    <input type="text" id="destination" placeholder="Travelling To">
+                </div>
+                <div class="form-group">
+                    <button type="button" onclick="searchRoutes()">Search Routes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        &copy; 2024 Bus Finder. All rights reserved.
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA-Dl0UYvx2na0oG0mXPPSGxRPxe7-uMfE",
+            authDomain: "bus-tracking-2b76e.firebaseapp.com",
+            databaseURL: "https://bus-tracking-2b76e-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "bus-tracking-2b76e",
+            storageBucket: "bus-tracking-2b76e.appspot.com",
+            messagingSenderId: "964312599473",
+            appId: "1:964312599473:web:82dc639eaf2d6451a48b90",
+            measurementId: "G-HDBKHSTKML"
+        };
+    
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+    
+        // Function to search routes and find the bus
+        function searchRoutes() {
+            const start = document.getElementById('start').value.trim().toLowerCase();
+            const destination = document.getElementById('destination').value.trim().toLowerCase();
+    
+            // Validate inputs
+            if (!start || !destination) {
+                alert('Please enter both starting and destination locations.');
+                return;
+            }
+    
+            // Fetch the bus data from Firebase
+            db.ref('/buses').once('value').then((snapshot) => {
+                const buses = snapshot.val();
+                let foundBuses = [];
+    
+                // Loop through each bus route and check if it passes through the start and destination
+                Object.keys(buses).forEach(busId => {
+                    const busDetails = buses[busId].Current_Details;
+                    const busRoute = busDetails.Bus_Route.map(stop => stop.toLowerCase());  // Convert all stops to lowercase
+    
+                    const startIndex = busRoute.indexOf(start);
+                    const destinationIndex = busRoute.indexOf(destination);
+    
+                    // Ensure both stops are part of the route and start comes before destination
+                    if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex) {
+                        foundBuses.push(busId);
+                    }
+                });
+    
+                // If suitable buses are found, redirect to another page
+                if (foundBuses.length > 0) {
+                    const busParam = foundBuses.join(',');  // Convert array to a comma-separated string
+                    window.location.href = `abc.html?buses=${busParam}`;
+                } else {
+                    alert('No suitable buses found for the given route.');
+                }
+            }).catch((error) => {
+                console.error("Error fetching data: ", error);
+            });
+        }
+    </script>
+    
+</body>
+
+</html>
