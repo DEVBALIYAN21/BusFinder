@@ -28,10 +28,12 @@
             background-color: white; 
             border-bottom-style: solid;
             border-color:#ff6348;
-            padding: 10px;
+            padding: 10px 15px;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -257,64 +259,72 @@
             margin-right: 25%;
         }
 
-        @media (max-width: 768px) {
-            .navbar {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                max-height: 150px;
-                width: 100%;
-                
-                background-color: white;
-            }
-            .centerdtext{
-                font-size:medium;
-                color: rgb(22, 66, 239);
-            }
+       
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        border-bottom: none;
+        box-shadow: none;
+    }
 
-            .navbar .logo img {
-                height: 60px;
-                mix-blend-mode:multiply;/* Adjust as needed */
-            }
+    .navbar .logo img {
+        height: 60px;
+        margin-bottom: 10px;
+    }
 
-            .navbar .nav-links {
-                display: block;
-                margin-top: 10px;
-            }
+    .navbar p {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
 
-            .navbar .nav-links li {
-                margin: 5px 0;
-            }
+    .navbar .login {
+        font-size: 12px;
+        margin-top: 10px;
+    }
 
-            .navbar .login {
-                font-size: 12px;
-            }
+    /* Mobile Menu */
+    .navbar .hamburger {
+        display: block;
+        cursor: pointer;
+        font-size: 24px;
+        color: #007bff;
+        margin-top: 10px;
+    }
 
-            .container {
-                
-                width: 100%;
-            }
+    .navbar .nav-links {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        align-items: center;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
 
-            .bus-card {
-                padding: 10px;
+    .navbar .nav-links.active {
+        display: flex;
+    }
 
-            }
+    .navbar .nav-links li {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        width: 100%;
+        text-align: center;
+    }
 
-            .route-details li {
-                font-size: 12px;
-            }
-            .centerdtext{
-                font-size:larger;
-                margin-left: 9%;
-                color: mediumseagreen;
-            }
-            
+    .navbar .nav-links li a {
+        text-decoration: none;
+        color: #333;
+        font-size: 16px;
+        display: block;
+    }
 
-            .toggle-route, .get-directions {
-                padding: 8px 10px;
-                font-size: 14px;
-            }
-        }
+    .navbar .nav-links li a:hover {
+        background-color: rgba(240, 240, 240, 0.9);
+    }
+}
         /* Back Button Styling */
         .back {
             display: flex;
@@ -353,6 +363,7 @@
             <i class="fa fa-home"></i> <!-- Font Awesome home icon -->
             Search Diffrent Route
         </a>
+        <div id="google_translate_element"></div>
         
         
 
@@ -407,6 +418,18 @@
         // Get bus IDs from URL
         const busIds = getParameterByName('buses');
         const busno='abc';
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'hi,en,te,ta,mr,kn,fr' // Add your desired languages here
+            }, 'google_translate_element');
+        }
+
+        (function() {
+            var script = document.createElement('script');
+            script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+            document.head.appendChild(script);
+        })();
     
         if (!busIds) {
             alert('Please provide bus IDs in the URL parameters.');

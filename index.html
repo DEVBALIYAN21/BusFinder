@@ -10,8 +10,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16x16.png">
 <link rel="manifest" href="/site.webmanifest">
     <style>
-        /* Basic Styles */
-        body {
+  body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
@@ -22,37 +21,31 @@
 
         /* Navbar Styling */
         .navbar {
-            border-bottom-style: solid;
-            border-color: #ff5d5d;
+            border-bottom: 2px solid #ff5d5d;
             background-color: white;
             padding: 10px 15px;
             display: flex;
-            justify-content: center; /* Centers items horizontally */
-            align-items: center; /* Centers items vertically */
+            justify-content: space-between;
+            align-items: center;
             text-align: center;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             position: sticky;
             top: 0;
             z-index: 100;
-            max-height: 80px;
         }
-        
-        .navbar .logo {
-            margin-right: 10px; /* Adjusted margin to prevent excessive spacing */
-        }
-        
+
         .navbar .logo img {
-            height: 100px; /* Set the height for the logo */
+            height: 80px;
         }
-        
+
         .navbar p {
-            margin: 0; /* Remove default margin */
-            font-size: 20px; /* Adjust font size if needed */
-            color: #ff5d5d; /* Set text color */
+            margin: 0;
+            font-size: 20px;
+            color: #ff5d5d;
             font-weight: bold;
             font-family: sans-serif;
         }
-        
+
         .navbar .login {
             padding: 10px 20px;
             background-color: #007bff;
@@ -62,11 +55,64 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-        
+
         .navbar .login:hover {
             background-color: #0056b3;
         }
-        
+
+        .goog-te-banner-frame {
+            display: none !important;
+        }
+
+        .goog-te-gadget {
+            border: none !important;
+            background-color: transparent !important;
+        }
+
+        .goog-te-menu {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 1px solid #ddd !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+            border-radius: 5px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: none !important; /* Hide by default */
+        }
+
+        .goog-te-menu2 {
+            border: 1px solid #ddd !important;
+            border-radius: 5px !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .goog-te-menu2-item {
+            padding: 10px 20px !important;
+            font-size: 14px !important;
+            border-bottom: 1px solid #ddd !important;
+            color: #333 !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .goog-te-menu2-item:hover {
+            background-color: rgba(240, 240, 240, 0.9) !important;
+        }
+
+        .goog-te-menu-value {
+            color: #333 !important;
+            font-size: 16px !important;
+            font-family: 'Poppins', sans-serif !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 1px solid #ddd !important;
+            border-radius: 5px !important;
+            padding: 10px !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .goog-te-menu-value:hover {
+            background-color: rgba(240, 240, 240, 0.9) !important;
+        }
+
+
         /* Main Container */
         .container {
             text-align: center;
@@ -98,8 +144,9 @@
             display: inline-block;
             animation: pop-up 0.5s ease-in-out;
         }
-        .centerdtext{
-            font-size:xx-large;
+
+        .centerdtext {
+            font-size: xx-large;
             color: mediumseagreen;
             margin-right: 25%;
         }
@@ -132,6 +179,7 @@
             border: none;
             font-size: 16px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.9); /* Transparent background */
         }
 
         .form-group button {
@@ -148,8 +196,7 @@
         }
 
         footer {
-            border-top-style: solid;
-            border-color:#ff6348;
+            border-top: 2px solid #ff6348;
             margin-top: 20px;
             padding: 10px 0;
             background: rgba(0, 0, 0, 0.7);
@@ -161,64 +208,89 @@
             bottom: 0;
         }
 
-        @media (max-width: 768px) {
-            .navbar {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                max-height: 40px;
-                background-color: white;
-            }
-            footer{
-                position: fixed;
-            }
-            .centerdtext{
-                font-size:medium;
-                color: rgb(22, 66, 239);
-            }
+        
+        
 
-            .navbar .logo img {
-                height: 60px;
-                mix-blend-mode:multiply;/* Adjust as needed */
-            }
 
-            .navbar .nav-links {
-                display: block;
-                margin-top: 10px;
-            }
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        border-bottom: none;
+        box-shadow: none;
+    }
 
-            .navbar .nav-links li {
-                margin: 5px 0;
-            }
+    .navbar .logo img {
+        height: 60px;
+        margin-bottom: 10px;
+    }
 
-            .navbar .login {
-                font-size: 12px;
-            }
+    .navbar p {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
 
-            .container {
-                padding: 10px;
-                margin: 10px;
-            }
+    .navbar .login {
+        font-size: 12px;
+        margin-top: 10px;
+    }
 
-            .bus-card {
-                padding: 10px;
-            }
+    /* Mobile Menu */
+    .navbar .hamburger {
+        display: block;
+        cursor: pointer;
+        font-size: 24px;
+        color: #007bff;
+        margin-top: 10px;
+    }
 
-            .route-details li {
-                font-size: 12px;
-            }
-            .centerdtext{
-                font-size:larger;
-                margin-left: 9%;
-                color: mediumseagreen;
-            }
-            
+    .navbar .nav-links {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        align-items: center;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
 
-            .toggle-route, .get-directions {
-                padding: 8px 10px;
-                font-size: 14px;
-            }
-        }
+    .navbar .nav-links.active {
+        display: flex;
+    }
+
+    .navbar .nav-links li {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        width: 100%;
+        text-align: center;
+    }
+
+    .navbar .nav-links li a {
+        text-decoration: none;
+        color: #333;
+        font-size: 16px;
+        display: block;
+    }
+
+    .navbar .nav-links li a:hover {
+        background-color: rgba(240, 240, 240, 0.9);
+    }
+    .goog-te-menu {
+        display: none ; /* Show menu on mobile */
+    }
+
+    .goog-te-menu2-item {
+        font-size: 1px ; /* Smaller font size for mobile */
+        padding: 8px 10px !important; /* Adjust padding for mobile */
+    }
+
+    .goog-te-menu-value {
+        font-size: 8px !important; /* Adjust font size for mobile */
+        padding: 8px !important; /* Adjust padding for mobile */
+    }
+}
+
     </style>
 </head>
 
@@ -229,6 +301,7 @@
             <img src="icon.png" alt="Bus Finder Logo">
         </div>
         <p class="find"> Find Your Best Bus</p>
+                <div id="google_translate_element"></div>
         
     </div>
 
@@ -276,6 +349,21 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        
+        // Google Translate Widget
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'hi,en,te,ta,mr,kn,fr' // Add your desired languages here
+            }, 'google_translate_element');
+        }
+
+        (function() {
+            var script = document.createElement('script');
+            script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+            document.head.appendChild(script);
+        })();
     
         // Function to search routes and find the bus
         function searchRoutes() {
