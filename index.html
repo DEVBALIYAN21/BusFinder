@@ -173,9 +173,42 @@ footer {
     width: 100%;
     bottom: 0;
 }
+#suggestions {
+    border: 1px solid #ff5d5d; /* Match border color with navbar */
+    border-radius: 8px; /* Rounded corners */
+    color: #333; /* Text color matching the site theme */
+    background-color: #fff; /* White background */
+    position: absolute;
+    z-index: 1000;
+    max-height: 200px; /* Ensure enough height for multiple suggestions */
+    overflow-y: auto; /* Enable vertical scrolling */
+    width: calc(100% - 20px); /* Slightly reduced width for better alignment */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Slightly stronger shadow for better visibility */
+    padding: 5px; /* Add padding for better spacing */
+    box-sizing: border-box; /* Ensure padding and border are included in width */
+}
+
+/* Individual Suggestion Item Styling */
+#suggestions div {
+    padding: 10px;
+    border-radius: 4px; /* Rounded corners for items */
+    cursor: pointer;
+    transition: background-color 0.2s ease; /* Smooth transition for hover effect */
+}
+
+/* Highlighted Item on Hover */
+#suggestions div:hover {
+    background-color: #f9f9f9; /* Light gray for hover effect */
+}
+
 
 /* Mobile Styles */
 @media (max-width: 768px) {
+    #suggestions {
+        width: calc(100% - 20px); /* Adjust width for mobile */
+        left: 10px; /* Align suggestions container properly on mobile */
+        top: calc(100% + 10px); /* Position suggestions container below input */
+    }
     .navbar {
         flex-direction: column;
         align-items: center;
@@ -232,7 +265,6 @@ footer {
 
     </style>
 </head>
-
 <body>
     <!-- Navbar -->
     <div class="navbar">
@@ -252,10 +284,11 @@ footer {
         </div>
 
         <div class="form-container">
-            <form id="routeForm">
+            <form id="routeForm" autocomplete="off">
                 <div class="form-group">
-                    <input type="text" id="start" placeholder="Starting From">
-                    <input type="text" id="destination" placeholder="Travelling To">
+                    <input type="text" id="start" placeholder="Starting From" oninput="suggestStops('start')">
+                    <input type="text" id="destination" placeholder="Travelling To" oninput="suggestStops('destination')">
+                    <div id="suggestions" style="display: none;"></div>
                 </div>
                 <div class="form-group">
                     <button type="button" onclick="searchRoutes()">Search Routes</button>
@@ -264,16 +297,22 @@ footer {
         </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Suggestions Container -->
     <footer>
         &copy; 2024 Bus Finder. All rights reserved.
     </footer>
+    
 
+    <!-- Firebase and Fuse.js Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.6.2/fuse.min.js"></script>
 
     <script>
-        // Firebase configuration
+        let stopsData = []; // Array to hold all stop names
+        let fuse = null;
+
+        // Initialize Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyA-Dl0UYvx2na0oG0mXPPSGxRPxe7-uMfE",
             authDomain: "bus-tracking-2b76e.firebaseapp.com",
@@ -284,44 +323,120 @@ footer {
             appId: "1:964312599473:web:82dc639eaf2d6451a48b90",
             measurementId: "G-HDBKHSTKML"
         };
-    
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-    
+
+        // Initialize Fuse.js
+        function initializeFuse() {
+            db.ref('/buses').once('value').then((snapshot) => {
+                const buses = snapshot.val();
+                let allStops = new Set();
+                Object.keys(buses).forEach(busId => {
+                    const busDetails = buses[busId].Current_Details;
+                    if (busDetails && busDetails.Bus_Route) {
+                        Object.keys(busDetails.Bus_Route).forEach(stopName => {
+                            allStops.add(stopName.toLowerCase());
+                        });
+                    }
+                });
+                stopsData = Array.from(allStops);
+                fuse = new Fuse(stopsData.map(name => ({ name })), { keys: ['name'] });
+                console.log('Fuse initialized with stops:', stopsData); // Debug log
+            }).catch((error) => {
+                console.error("Error fetching stops data: ", error);
+            });
+        }
+        
+        // Ensure this function is called
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFuse();
+        });
+        
+        
+
+        // Function to suggest stops based on user input
+        function suggestStops(inputId) {
+            const inputValue = document.getElementById(inputId).value.trim().toLowerCase();
+            const suggestionsContainer = document.getElementById('suggestions');
+        
+            if (fuse && inputValue) {
+                const results = fuse.search(inputValue).map(result => result.item.name);
+                if (results.length > 0) {
+                    suggestionsContainer.innerHTML = results.map(stop => `<div data-input-id="${inputId}">${stop}</div>`).join('');
+                    suggestionsContainer.style.display = 'block';
+                    positionSuggestions(inputId);
+                } else {
+                    suggestionsContainer.style.display = 'none';
+                }
+            } else {
+                suggestionsContainer.style.display = 'none';
+            }
+        }
+        
+        
+        // Function to position the suggestions container
+        function positionSuggestions(inputId) {
+            const inputElement = document.getElementById(inputId);
+            const suggestionsContainer = document.getElementById('suggestions');
+            const rect = inputElement.getBoundingClientRect();
+            
+            // Position suggestions container below the input field
+            suggestionsContainer.style.position = 'absolute';
+            suggestionsContainer.style.top = `${rect.bottom + window.scrollY}px`;
+            suggestionsContainer.style.left = `${rect.left}px`;
+            suggestionsContainer.style.width = `${inputElement.offsetWidth}px`;
+        }
+        
+        
+
         // Function to search routes and find the bus
         function searchRoutes() {
             const start = document.getElementById('start').value.trim().toLowerCase();
             const destination = document.getElementById('destination').value.trim().toLowerCase();
-    
-            // Validate inputs
+        
             if (!start || !destination) {
                 alert('Please enter both starting and destination locations.');
                 return;
             }
-    
-            // Fetch the bus data from Firebase
+        
             db.ref('/buses').once('value').then((snapshot) => {
                 const buses = snapshot.val();
                 let foundBuses = [];
-    
-                // Loop through each bus route and check if it passes through the start and destination
+        
                 Object.keys(buses).forEach(busId => {
                     const busDetails = buses[busId].Current_Details;
-                    const busRoute = busDetails.Bus_Route.map(stop => stop.toLowerCase());  // Convert all stops to lowercase
-    
-                    const startIndex = busRoute.indexOf(start);
-                    const destinationIndex = busRoute.indexOf(destination);
-    
-                    // Ensure both stops are part of the route and start comes before destination
-                    if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex) {
-                        foundBuses.push(busId);
+                    if (busDetails && busDetails.Bus_Route) {
+                        const busRouteStops = Object.keys(busDetails.Bus_Route).map(stopName => stopName.toLowerCase());
+                        const isReversed = busDetails.isReversed || false;
+                        let startIndex, destinationIndex;
+        
+                        // Check in normal route
+                        if (!isReversed) {
+                            startIndex = busRouteStops.indexOf(start);
+                            destinationIndex = busRouteStops.indexOf(destination);
+                            
+                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex) {
+                                foundBuses.push(busId);
+                            }
+                        }
+        
+                        // Check in reversed route
+                        if (isReversed) {
+                            const reversedRouteStops = [...busRouteStops].reverse();
+                            startIndex = reversedRouteStops.indexOf(start);
+                            destinationIndex = reversedRouteStops.indexOf(destination);
+                            
+                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex) {
+                                foundBuses.push(busId);
+                            }
+                        }
+                    } else {
+                        console.warn(`Bus ${busId} does not have a valid Bus_Route.`);
                     }
                 });
-    
-                // If suitable buses are found, redirect to another page
+        
                 if (foundBuses.length > 0) {
-                    const busParam = foundBuses.join(',');  // Convert array to a comma-separated string
+                    const busParam = foundBuses.join(',');
                     window.location.href = `abc.html?buses=${busParam}`;
                 } else {
                     alert('No suitable buses found for the given route.');
@@ -330,8 +445,15 @@ footer {
                 console.error("Error fetching data: ", error);
             });
         }
+        document.getElementById('suggestions').addEventListener('click', (event) => {
+            if (event.target.tagName === 'DIV') {
+                const inputId = event.target.getAttribute('data-input-id');
+                document.getElementById(inputId).value = event.target.textContent;
+                document.getElementById('suggestions').style.display = 'none';
+            }
+        });
+        
+        
     </script>
-    
 </body>
-
 </html>

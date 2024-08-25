@@ -381,9 +381,163 @@
         };
     
         // Initialize Firebase
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-    
+// Ensure that each busId is updated only once per second
+
+const lastUpdateMap = {};
+
+// Ensure that each busId is updated only once per second
+function updateCurrentStop(busId) {
+    const now = Date.now();
+
+    // Check if the busId has been updated in the last second
+    if (lastUpdateMap[busId] && (now - lastUpdateMap[busId] < 1000)) {
+        console.log(`Skipping update for busId ${busId} due to rate limit.`);
+        return;
+    }
+
+    // Update the last update time
+    lastUpdateMap[busId] = now;
+
+    console.log('Updating current stop for busId:', busId);
+    const busRef = db.ref(`buses/${busId}/Current_Details`);
+
+    // Fetch the bus's current details, including latitude, longitude, and isReversed flag
+    busRef.once('value')
+        .then(snapshot => {
+            const busDetails = snapshot.val();
+            const busLat = busDetails.latitude;
+            const busLng = busDetails.longitude;
+            const isReversed = busDetails.isReversed || false;
+
+            if (busLat && busLng) {
+                db.ref(`buses/${busId}/Current_Details/Bus_Route`).once('value')
+                    .then(stopsSnapshot => {
+                        const stops = stopsSnapshot.val();
+                        if (stops) {
+                            let closestStop = null;
+                            let closestDistance = Infinity;
+
+                            const stopNames = Object.keys(stops);
+
+                            // Find the closest stop
+                            stopNames.forEach(stopName => {
+                                const stopLat = stops[stopName].lat;
+                                const stopLng = stops[stopName].long;
+                                const distance = calculateDistance(busLat, busLng, stopLat, stopLng);
+
+                                if (distance < closestDistance && distance < 100) {
+                                    closestDistance = distance;
+                                    closestStop = stopName;
+                                }
+                            });
+
+                            if (closestStop) {
+                                const currentIndex = stopNames.indexOf(closestStop);
+                                let previousStopName, nextStopName;
+
+                                // Determine previous and next stops based on direction
+                                if (!isReversed) {
+                                    previousStopName = currentIndex > 0 ? stopNames[currentIndex - 1] : 'Start of Route';
+                                    nextStopName = currentIndex < stopNames.length - 1 ? stopNames[currentIndex + 1] : 'End of Route';
+
+                                    // If we reached the last stop in the normal direction
+                                    if (nextStopName === 'End of Route') {
+                                        busRef.update({
+                                            isReversed: true,
+                                            Next: stopNames[currentIndex - 1] // Set next to the previous stop in reverse direction
+                                        }).then(() => {
+                                            console.log(`Reached the last stop in normal direction. Reversing direction for busId ${busId}.`);
+                                        }).catch(error => {
+                                            console.error('Error toggling route reversal:', error);
+                                        });
+                                        nextStopName = stopNames[currentIndex - 1];
+                                    }
+                                } else {
+                                    previousStopName = currentIndex < stopNames.length - 1 ? stopNames[currentIndex + 1] : 'End of Route';
+                                    nextStopName = currentIndex > 0 ? stopNames[currentIndex - 1] : 'Start of Route';
+
+                                    // If we reached the first stop in the reversed direction
+                                    if (nextStopName === 'Start of Route') {
+                                        busRef.update({
+                                            isReversed: false,
+                                            Next: stopNames[currentIndex + 1] // Set next to the next stop in the forward direction
+                                        }).then(() => {
+                                            console.log(`Reached the first stop in reversed direction. Reversing back to forward direction for busId ${busId}.`);
+                                        }).catch(error => {
+                                            console.error('Error toggling route reversal:', error);
+                                        });
+                                        nextStopName = stopNames[currentIndex + 1];
+                                    }
+                                }
+
+                                // Update Firebase with the new current, previous, and next stops
+                                busRef.update({
+                                    Current: closestStop,
+                                    Previous: previousStopName,
+                                    Next: nextStopName
+                                }).then(() => {
+                                    console.log('Updated current stop:', closestStop, previousStopName, nextStopName);
+                                    updateWebpageCurrentStop(closestStop, previousStopName, nextStopName);
+                                }).catch(error => {
+                                    console.error('Error updating current stop:', error);
+                                });
+                            } else {
+                                console.log('No stop found within the threshold. Current stop not updated.');
+                            }
+                        } else {
+                            console.log('No stops data found for the bus route.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching bus route stops:', error);
+                    });
+            } else {
+                console.log('Bus latitude and longitude are missing.');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching bus current details:', error);
+        });
+}
+
+
+// Function to calculate the distance between two lat/lng points in meters
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    const distance = R * c; // in meters
+    return distance;
+}
+
+// Function to update the current stop on the webpage (assuming you have some element to update)
+function updateWebpageCurrentStop(currentStopName, previousStopName, nextStopName) {
+    const stopElement = document.getElementById('currentStop'); // Update with your actual element ID
+    const prevStopElement = document.getElementById('previousStop'); // Update with your actual element ID
+    const nextStopElement = document.getElementById('nextStop'); // Update with your actual element ID
+
+    if (stopElement) {
+        stopElement.textContent = `Current Stop: ${currentStopName}`;
+    }
+    if (prevStopElement) {
+        prevStopElement.textContent = `Previous Stop: ${previousStopName}`;
+    }
+    if (nextStopElement) {
+        nextStopElement.textContent = `Next Stop: ${nextStopName}`;
+    }
+}        
+
         // Helper function to get URL parameters
         function getParameterByName(name, url = window.location.href) {
             name = name.replace(/[\[\]]/g, '\\$&');
@@ -396,8 +550,6 @@
     
         // Get bus IDs from URL
         const busIds = getParameterByName('buses');
-        const busno='abc';
-
     
         if (!busIds) {
             alert('Please provide bus IDs in the URL parameters.');
@@ -405,8 +557,11 @@
             // Split the bus IDs by comma
             const busIdArray = busIds.split(',');
     
-            // Show loading circle
-            document.getElementById('loading-circle').classList.add('show');
+            // Show loading circle if it exists
+            const loadingCircle = document.getElementById('loading-circle');
+            if (loadingCircle) {
+                loadingCircle.classList.add('show');
+            }
     
             // Fetch and display bus details for each busId
             Promise.all(busIdArray.map(busId => db.ref('buses/' + busId + '/Current_Details').once('value')))
@@ -416,38 +571,93 @@
     
                     snapshots.forEach(snapshot => {
                         const busDetails = snapshot.val();
-                        if (busDetails) {
-                            const people = busDetails.people_count || 'N/A';
-                            const busRoute = busDetails.Bus_Route || [];
-                            const currentStop = busDetails.Current || 'N/A';
-                            const previousStop = busDetails.Previous || 'N/A';
-                            const latitude = busDetails.latitude || 'N/A';
-                            const longitude = busDetails.longitude || 'N/A';
-                            // Predict the next stop based on the current stop
-                            let predictedNextStop = 'End of Route';
-                            const currentIndex = busRoute.indexOf(currentStop);
-                            if (currentIndex !== -1 && currentIndex < busRoute.length - 1) {
-                                predictedNextStop = busRoute[currentIndex + 1];
-                            }
+                       if (busDetails) {
+    const people = busDetails.people_count || 'N/A';
+    const busRoute = busDetails.Bus_Route || {}; // Changed to object
+    const currentStop = busDetails.Current || 'N/A';
+    const NextStop=busDetails.Next;
+    const previousStop = busDetails.Previous || 'N/A';
+    const latitude = busDetails.latitude || 'N/A';
+    const longitude = busDetails.longitude || 'N/A';
     
+   // Convert bus route to an array of stop names
+const busRouteKeys = Object.keys(busRoute);
+
+let predictedNextStop = 'End of Route';
+const currentIndex = busRouteKeys.indexOf(currentStop);
+
+// Check if the route is reversed
+if (busDetails.isReversed) {
+    // Handle reversed route
+    if (currentIndex !== -1 && currentIndex > 0) {
+        predictedNextStop = busRouteKeys[currentIndex - 1];
+    }
+    
+    // Check if we are at the end of the reversed route
+    if (currentIndex === busRouteKeys.length - 1) {
+        // Reverse the route back to original order
+        const originalRoute = {};
+        busRouteKeys.forEach(key => {
+            originalRoute[key] = busRoute[key];
+        });
+
+        db.ref(`buses/${snapshot.ref.parent.key}/Current_Details`).update({
+            Bus_Route: originalRoute,
+            isReversed: false
+        }).then(() => {
+            console.log("Bus route reversed back to original order successfully.");
+        }).catch(error => {
+            console.error("Error reversing bus route back: ", error);
+        });
+        
+        // Set the predicted next stop to the previous stop in normal mode
+        predictedNextStop = previousStop || 'N/A';
+    }
+} else {
+    // Handle normal route
+    if (currentIndex !== -1 && currentIndex < busRouteKeys.length - 1) {
+        predictedNextStop = busRouteKeys[currentIndex + 1];
+    }
+    
+    // Check if we are at the end of the route
+    if (currentIndex === busRouteKeys.length - 1) {
+        // Reverse the route and update the bus details
+        const reversedRoute = {};
+        for (let i = busRouteKeys.length - 1; i >= 0; i--) {
+            reversedRoute[busRouteKeys[i]] = busRoute[busRouteKeys[i]];
+        }
+
+        db.ref(`buses/${snapshot.ref.parent.key}/Current_Details`).update({
+            Bus_Route: reversedRoute,
+            isReversed: true
+        }).then(() => {
+            console.log("Bus route reversed successfully.");
+        }).catch(error => {
+            console.error("Error reversing bus route: ", error);
+        });
+        
+        // Set the predicted next stop to the previous stop in reversed mode
+        predictedNextStop = busRouteKeys[currentIndex - 1] || 'N/A';
+    }
+}
+
+// Update the webpage with the predicted next stop
+
+
                             detailsContainer.innerHTML += `
                                 <div class="bus-card">
-<h2 style="color: #003366; font-size: 2em; font-weight: bold; margin-bottom: 10px;">
-    <i class="fas fa-bus icon" style="color: #00bfae; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4); font-size: 2.2em; margin-right: 10px; transform: rotate(10deg);"></i>
-    Bus ID: ${snapshot.ref.parent.key} Details
-</h2>
-<p><i class="fas fa-users icon gradient-icon"></i> People Count: ${people}</p>
-<p><i class="fas fa-arrow-right icon gradient-icon"></i> Current Stop: ${currentStop}</p>
-
-<p><i class="fas fa-arrow-right icon gradient-icon"></i> Next Stop: ${predictedNextStop}</p>
-
+                                    <h2 style="color: #003366; font-size: 2em; font-weight: bold; margin-bottom: 10px;">
+                                        <i class="fas fa-bus icon" style="color: #00bfae; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4); font-size: 2.2em; margin-right: 10px; transform: rotate(10deg);"></i>
+                                        Bus ID: ${snapshot.ref.parent.key} Details
+                                    </h2>
+                                    <p><i class="fas fa-users icon gradient-icon"></i> People Count: ${people}</p>
+                                    <p><i class="fas fa-arrow-right icon gradient-icon"></i> Current Stop: ${currentStop}</p>
+                                    <p><i class="fas fa-arrow-right icon gradient-icon"></i> Next Stop: ${NextStop}</p>
                                     <button class="toggle-route btn btn-primary" data-id="${snapshot.ref.parent.key}">Show Route</button>
-                                <button class="btn btn-success get-directions" data-id="${snapshot.ref.parent.key}">Get Directions</button>
-
-
+                                    <button class="btn btn-success get-directions" data-id="${snapshot.ref.parent.key}">Get Directions</button>
                                     <div class="route-details" id="route-${snapshot.ref.parent.key}" style="display: none;">
                                         <ul>
-                                            ${busRoute.map((stop, index, array) => `
+                                            ${busRouteKeys.map((stop, index, array) => `
                                                 <li>${stop}</li>
                                                 ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
                                             `).join('')}
@@ -455,55 +665,94 @@
                                     </div>
                                 </div>
                             `;
-                        } else {
-                            detailsContainer.innerHTML += `
-                                <div class="bus-card">
-                                    <h2 style="color:#007bff">Bus ID: ${snapshot.ref.parent.key} Details</h2>
-                                    <p>No data found for this bus.</p>
-                                </div>
-                            `;
                         }
-                        
                     });
     
                     // Hide loading circle
-                    document.getElementById('loading-circle').classList.remove('show');
+                    if (loadingCircle) {
+                        loadingCircle.classList.remove('show');
+                    }
+    
+                    document.querySelectorAll('.toggle-route').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const routeId = this.getAttribute('data-id');
+                            const routeDetails = document.getElementById(`route-${routeId}`);
+                            if (routeDetails) {
+                                // Toggle the route details' display
+                                const isHidden = routeDetails.style.display === 'none';
+                                routeDetails.style.display = isHidden ? 'block' : 'none';
+                                this.textContent = isHidden ? 'Hide Route' : 'Show Route';
+                            }
+                        });
+                    });
+        
+                    document.querySelectorAll('.get-directions').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const busId = this.getAttribute('data-id');
+                            console.log(`Get directions for Bus ID: ${busId}`);
+                        });
+                    });
+        
+                    // Update current stop for each bus
+                    busIdArray.forEach(busId => updateCurrentStop(busId));
+                    busIdArray.forEach(busId => {
+                        setInterval(() => updateCurrentStop(busId), 1000); // Update every 1 second
+                    });
                 })
                 .catch(error => {
-                    console.error("Error fetching data: ", error);
-                    document.getElementById('loading-circle').classList.remove('show');
+                    console.error("Error fetching bus details: ", error);
+                    // Hide loading circle if an error occurs
+                    if (loadingCircle) {
+                        loadingCircle.classList.remove('show');
+                    }
                 });
         }
     
         // Function to toggle route details
-        document.addEventListener('click', function(event) {
-            if (event.target.classList.contains('toggle-route')) {
-                const busId = event.target.getAttribute('data-id');
-                const routeElement = document.getElementById(`route-${busId}`);
-                if (routeElement.style.display === 'none' || routeElement.style.display === '') {
-                    routeElement.style.display = 'block';
-                    event.target.textContent = 'Hide Route';
-                } else {
-                    routeElement.style.display = 'none';
-                    event.target.textContent = 'Show Route';
-                }
+// Function to toggle route details
+document.addEventListener('DOMContentLoaded', function() {
+    // Bind event listeners to buttons
+    document.querySelectorAll('.toggle-route').forEach(button => {
+        button.addEventListener('click', function() {
+            const routeId = this.getAttribute('data-id');
+            const routeDetails = document.getElementById(`route-${routeId}`);
+            if (routeDetails) {
+                // Toggle the route details' display
+                const isHidden = routeDetails.style.display === 'none' || routeDetails.style.display === '';
+                routeDetails.style.display = isHidden ? 'block' : 'none';
+                this.textContent = isHidden ? 'Hide Route' : 'Show Route';
             }
         });
+    });
 
-        // Function to handle "Get Directions" button clicks
-// Function to handle "Get Directions" button clicks
-document.addEventListener('click', function(event) {
-    if (event.target.classList.contains('get-directions')) {
-        const busId = event.target.getAttribute('data-id'); // Get the bus ID
-       
-        // Construct the URL with the bus ID instead of lat/lng
-        const mapsUrl = `maps.html?busId=${busId}`;
-        window.location.href = mapsUrl;
-    }
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('get-directions')) {
+            const busId = event.target.getAttribute('data-id'); // Get the bus ID
+           
+            // Construct the URL with the bus ID instead of lat/lng
+            const mapsUrl = `maps.html?busId=${busId}`;
+            window.location.href = mapsUrl;
+        }
+    });
+
+    // Fetch and display bus details (example code)
+    // Assuming this part is already in place
 });
+    
+      /*  // Function to get directions
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('get-directions')) {
+                const busId = event.target.getAttribute('data-id'); // Get the bus ID
+               
+                // Construct the URL with the bus ID instead of lat/lng
+                const mapsUrl = `maps.html?busId=${busId}`;
+                window.location.href = mapsUrl;
+            }
+        });*/
 
-
+        
     </script>
+    
     
 </body>
 
