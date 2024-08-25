@@ -314,6 +314,7 @@ footer {
 
         // Initialize Firebase
         const firebaseConfig = {
+            
             apiKey: "AIzaSyA-Dl0UYvx2na0oG0mXPPSGxRPxe7-uMfE",
             authDomain: "bus-tracking-2b76e.firebaseapp.com",
             databaseURL: "https://bus-tracking-2b76e-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -388,8 +389,6 @@ footer {
         }
         
         
-
-        // Function to search routes and find the bus
         function searchRoutes() {
             const start = document.getElementById('start').value.trim().toLowerCase();
             const destination = document.getElementById('destination').value.trim().toLowerCase();
@@ -408,14 +407,16 @@ footer {
                     if (busDetails && busDetails.Bus_Route) {
                         const busRouteStops = Object.keys(busDetails.Bus_Route).map(stopName => stopName.toLowerCase());
                         const isReversed = busDetails.isReversed || false;
-                        let startIndex, destinationIndex;
+                        let startIndex, destinationIndex, currentStopIndex;
         
                         // Check in normal route
                         if (!isReversed) {
                             startIndex = busRouteStops.indexOf(start);
                             destinationIndex = busRouteStops.indexOf(destination);
-                            
-                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex) {
+                            currentStopIndex = busRouteStops.indexOf(busDetails.Current.toLowerCase());
+        
+                            // Ensure the bus is at or before the start stop and the start stop is before the destination
+                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex && currentStopIndex <= startIndex) {
                                 foundBuses.push(busId);
                             }
                         }
@@ -425,8 +426,10 @@ footer {
                             const reversedRouteStops = [...busRouteStops].reverse();
                             startIndex = reversedRouteStops.indexOf(start);
                             destinationIndex = reversedRouteStops.indexOf(destination);
-                            
-                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex) {
+                            currentStopIndex = reversedRouteStops.indexOf(busDetails.Current.toLowerCase());
+        
+                            // Ensure the bus is at or before the start stop in the reversed route
+                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex && currentStopIndex <= startIndex) {
                                 foundBuses.push(busId);
                             }
                         }
@@ -445,6 +448,7 @@ footer {
                 console.error("Error fetching data: ", error);
             });
         }
+        
         document.getElementById('suggestions').addEventListener('click', (event) => {
             if (event.target.tagName === 'DIV') {
                 const inputId = event.target.getAttribute('data-input-id');
@@ -453,7 +457,9 @@ footer {
             }
         });
         
+          
         
     </script>
+    
 </body>
 </html>
