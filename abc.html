@@ -579,6 +579,7 @@ function updateWebpageCurrentStop(currentStopName, previousStopName, nextStopNam
     const previousStop = busDetails.Previous || 'N/A';
     const latitude = busDetails.latitude || 'N/A';
     const longitude = busDetails.longitude || 'N/A';
+    const reversed = busDetails.isReversed;
     
    // Convert bus route to an array of stop names
 const busRouteKeys = Object.keys(busRoute);
@@ -655,12 +656,19 @@ if (busDetails.isReversed) {
                                     <p><i class="fas fa-arrow-right icon gradient-icon"></i> Next Stop: ${NextStop}</p>
                                     <button class="toggle-route btn btn-primary" data-id="${snapshot.ref.parent.key}">Show Route</button>
                                     <button class="btn btn-success get-directions" data-id="${snapshot.ref.parent.key}">Get Directions</button>
-                                    <div class="route-details" id="route-${snapshot.ref.parent.key}" style="display: none;">
-                                        <ul>
-                                            ${busRouteKeys.map((stop, index, array) => `
-                                                <li>${stop}</li>
-                                                ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
-                                            `).join('')}
+                                   <div class="route-details" id="route-${snapshot.ref.parent.key}" style="display: none;">
+    <ul>
+        ${reversed ? 
+            busRouteKeys.slice().reverse().map((stop, index, array) => `
+                <li>${stop}</li>
+                ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
+            `).join('') 
+            : 
+            busRouteKeys.map((stop, index, array) => `
+                <li>${stop}</li>
+                ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
+            `).join('')
+        }
                                         </ul>
                                     </div>
                                 </div>
