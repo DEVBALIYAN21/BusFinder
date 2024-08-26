@@ -469,7 +469,7 @@ footer {
             a.value=b.value;
             b.value=temp;
         }
-        function searchRoutes() {
+      /*  function searchRoutes() {
             const start = document.getElementById('start').value.trim().toLowerCase();
             const destination = document.getElementById('destination').value.trim().toLowerCase();
         
@@ -484,6 +484,8 @@ footer {
         
                 Object.keys(buses).forEach(busId => {
                     const busDetails = buses[busId].Current_Details;
+                    const peopleCount = buses[busId].Current_Details.people_count || 0;  // Fetch people_count from Firebase
+        
                     if (busDetails && busDetails.Bus_Route) {
                         const orderedStops = busDetails.Bus_Route.Ordered_Stop_Names.map(stopName => stopName.toLowerCase());
                         const isReversed = busDetails.isReversed || false;
@@ -497,8 +499,8 @@ footer {
         
                             // Ensure the bus is at or before the start stop and covers the destination
                             if (startIndex !== -1 && destinationIndex !== -1 && startIndex <= destinationIndex && currentStopIndex <= startIndex) {
-                                foundBuses.push(busId);
-                                console.log(`Bus ${busId} (normal route) matches: ${start} to ${destination}`);
+                                foundBuses.push({ busId, peopleCount });
+                                console.log(`Bus ${busId} added to foundBuses (normal route): people_count = ${peopleCount}`);
                             }
                         } else {
                             // Reversed route
@@ -509,8 +511,8 @@ footer {
         
                             // Ensure the bus is at or before the start stop in reversed route and covers the destination
                             if (startIndex !== -1 && destinationIndex !== -1 && startIndex <= destinationIndex && currentStopIndex <= startIndex) {
-                                foundBuses.push(busId);
-                                console.log(`Bus ${busId} (reversed route) matches: ${start} to ${destination}`);
+                                foundBuses.push({ busId, peopleCount });
+                                console.log(`Bus ${busId} added to foundBuses (reversed route): people_count = ${peopleCount}`);
                             }
                         }
                     } else {
@@ -518,8 +520,20 @@ footer {
                     }
                 });
         
+                // Log found buses before sorting
+                console.log("Found Buses Before Sorting:", foundBuses);
+        
                 if (foundBuses.length > 0) {
-                    const busParam = foundBuses.join(',');
+                    // Sort the buses by the number of people in ascending order (smallest to largest)
+                    foundBuses.sort((a, b) => a.peopleCount - b.peopleCount);
+        
+                    // Log sorted buses
+                    console.log("Found Buses After Sorting:", foundBuses);
+        
+                    const sortedBusIds = foundBuses.map(bus => bus.busId);
+                    const busParam = sortedBusIds.join(',');
+        
+                    // Redirect to next page
                     window.location.href = `abc.html?buses=${busParam}`;
                 } else {
                     alert('No suitable buses found for the given route.');
@@ -528,6 +542,109 @@ footer {
                 console.error("Error fetching data: ", error);
             });
         }
+    */    
+
+    function searchRoutes() {
+        const start = document.getElementById('start').value.trim().toLowerCase();
+        const destination = document.getElementById('destination').value.trim().toLowerCase();
+    
+        if (!start || !destination) {
+            // Custom alert for missing start or destination
+            displayCustomAlert('🚨 Oh no! You forgot something! 🚨', 'Please enter both starting and destination locations. 🏙️🚏');
+            return;
+        }
+        if (start === destination) {
+            // Custom alert for same start and destination
+            displayCustomAlert('🤔 Wait a minute! 🤔', 'Your start and destination are the same! You must have a different journey in mind. ✈️🌍');
+            return;
+        }
+    
+    
+        db.ref('/buses').once('value').then((snapshot) => {
+            const buses = snapshot.val();
+            let foundBuses = [];
+    
+            Object.keys(buses).forEach(busId => {
+                const busDetails = buses[busId].Current_Details;
+                const peopleCount = buses[busId].Current_Details.people_count || 0;  // Fetch people_count from Firebase
+    
+                if (busDetails && busDetails.Bus_Route) {
+                    const orderedStops = busDetails.Bus_Route.Ordered_Stop_Names.map(stopName => stopName.toLowerCase());
+                    const isReversed = busDetails.isReversed || false;
+                    let startIndex, destinationIndex, currentStopIndex;
+    
+                    if (!isReversed) {
+                        // Normal route
+                        startIndex = orderedStops.indexOf(start);
+                        destinationIndex = orderedStops.indexOf(destination);
+                        currentStopIndex = orderedStops.indexOf(busDetails.Current.toLowerCase());
+    
+                        // Ensure the bus is at or before the start stop and covers the destination
+                        if (startIndex !== -1 && destinationIndex !== -1 && startIndex <= destinationIndex && currentStopIndex <= startIndex) {
+                            const distanceFromStart = startIndex - currentStopIndex;  // Calculate distance from start
+                            foundBuses.push({ busId, peopleCount, distanceFromStart });
+                            console.log(`Bus ${busId} added to foundBuses (normal route): people_count = ${peopleCount}, distanceFromStart = ${distanceFromStart}`);
+                        }
+                    } else {
+                        // Reversed route
+                        const reversedOrderedStops = [...orderedStops].reverse();
+                        startIndex = reversedOrderedStops.indexOf(start);
+                        destinationIndex = reversedOrderedStops.indexOf(destination);
+                        currentStopIndex = reversedOrderedStops.indexOf(busDetails.Current.toLowerCase());
+    
+                        // Ensure the bus is at or before the start stop in reversed route and covers the destination
+                        if (startIndex !== -1 && destinationIndex !== -1 && startIndex <= destinationIndex && currentStopIndex <= startIndex) {
+                            const distanceFromStart = currentStopIndex - startIndex;  // Calculate distance from start in reversed route
+                            foundBuses.push({ busId, peopleCount, distanceFromStart });
+                            console.log(`Bus ${busId} added to foundBuses (reversed route): people_count = ${peopleCount}, distanceFromStart = ${distanceFromStart}`);
+                        }
+                    }
+                } else {
+                    console.warn(`Bus ${busId} does not have a valid Bus_Route.`);
+                }
+            });
+    
+            // Log found buses before sorting
+            console.log("Found Buses Before Sorting:", foundBuses);
+    
+            if (foundBuses.length > 0) {
+                // Sort the buses
+                foundBuses.sort((a, b) => {
+                    if (Math.abs(a.distanceFromStart) <= 3 && Math.abs(b.distanceFromStart) <= 3) {
+                        // If both buses are within 2-3 stops back, sort by peopleCount
+                        return a.peopleCount - b.peopleCount;  // Ascending order
+                    } else if (Math.abs(a.distanceFromStart) <= 3) {
+                        // If only bus a is within 2-3 stops back
+                        return -1;  // Prioritize bus a
+                    } else if (Math.abs(b.distanceFromStart) <= 3) {
+                        // If only bus b is within 2-3 stops back
+                        return 1;  // Prioritize bus b
+                    } else {
+                        // If both are beyond 3 stops, sort by distanceFromStart
+                        return a.distanceFromStart - b.distanceFromStart;  // Ascending order
+                    }
+                });
+    
+                // Log sorted buses
+                console.log("Found Buses After Sorting:", foundBuses);
+    
+                const sortedBusIds = foundBuses.map(bus => bus.busId);
+                const busParam = sortedBusIds.join(',');
+    
+                // Redirect to next page
+                window.location.href = `abc.html?buses=${busParam}`;
+            }else {
+                // Custom alert for no suitable buses found
+                displayCustomAlert('🚫 No Buses Found! 🚫', 'Looks like there are no suitable buses for your journey. Try a different route! 🚍🌟');
+            }
+        }).catch((error) => {
+            console.error("Error fetching data: ", error);
+            displayCustomAlert('❗Oops! Something went wrong!❗', 'We encountered an error while fetching bus data. Please try again later. 🕒🔄');
+        });
+    }
+    
+    
+        
         
         // Suggestion click event handler
         document.getElementById('suggestions').addEventListener('click', (event) => {
@@ -537,6 +654,58 @@ footer {
                 document.getElementById('suggestions').style.display = 'none';
             }
         });
+
+        function displayCustomAlert(title, message) {
+            // Create a custom alert element
+            const alertDiv = document.createElement('div');
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '50%';
+            alertDiv.style.left = '50%';
+            alertDiv.style.transform = 'translate(-50%, -50%)';  // Center the alert
+            alertDiv.style.backgroundColor = '#ffcccc';
+            alertDiv.style.color = '#cc0000';
+            alertDiv.style.padding = '15px';
+            alertDiv.style.borderRadius = '10px';
+            alertDiv.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.2)';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.maxWidth = '90%';  // Limit width for mobile screens
+            alertDiv.style.width = '200px';  // Set a fixed width for larger screens
+            alertDiv.style.textAlign = 'center';
+            
+            // Create the close button
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '&times;';  // HTML entity for "×"
+            closeButton.style.position = 'absolute';
+            closeButton.style.left = '200px';
+            
+            closeButton.style.background = 'transparent';
+            closeButton.style.border = 'none';
+            closeButton.style.color = '#cc0000';
+            closeButton.style.fontSize = '20px';
+            closeButton.style.cursor = 'pointer';
+        
+            // Add the button click event
+            closeButton.addEventListener('click', () => {
+                document.body.removeChild(alertDiv);
+            });
+        
+            // Add title, message, and close button to the alertDiv
+             alertDiv.innerHTML = `
+                <button style="position: absolute; top: 0px; right: 0px; background:rgba(0, 0, 0, 0.1); ; border-radius:5px; border: none; color: #cc0000; font-size: 20px; cursor: pointer;" onclick="this.parentElement.remove()">&times;</button>
+                <h2 style="font-size: 18px; margin: 0;">${title}</h2>
+                <p style="font-size: 16px; margin: 10px 0 0;">${message}</p>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Optional: remove the alert after 5 seconds if not manually closed
+            setTimeout(() => {
+                if (document.body.contains(alertDiv)) {
+                    document.body.removeChild(alertDiv);
+                }
+            }, 2000);
+        }
+        
         
     </script>
     
