@@ -590,7 +590,12 @@ function updateWebpageCurrentStop(currentStopName, previousStopName, nextStopNam
                 const orderedStopNames = busDetails.Bus_Route.Ordered_Stop_Names || []; // Use Ordered_Stop_Names
 
                 // Generate route details based on Ordered_Stop_Names
-                const routeDetails = orderedStopNames.map((stop, index, array) => `
+                const routeDetails = reversed ? 
+                orderedStopNames.slice().reverse().map((stop, index, array) => `
+                    <li>${stop}</li>
+                    ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
+                `).join('') :
+                orderedStopNames.map((stop, index, array) => `
                     <li>${stop}</li>
                     ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
                 `).join('');
