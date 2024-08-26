@@ -326,7 +326,8 @@ footer {
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
+         // Array to hold stop names
+        
         // Initialize Fuse.js
         function initializeFuse() {
             db.ref('/buses').once('value').then((snapshot) => {
@@ -334,8 +335,9 @@ footer {
                 let allStops = new Set();
                 Object.keys(buses).forEach(busId => {
                     const busDetails = buses[busId].Current_Details;
-                    if (busDetails && busDetails.Bus_Route) {
-                        Object.keys(busDetails.Bus_Route).forEach(stopName => {
+                    if (busDetails && busDetails.Bus_Route && busDetails.Bus_Route.Ordered_Stop_Names) {
+                        // Use the ordered stop names from Firebase
+                        busDetails.Bus_Route.Ordered_Stop_Names.forEach(stopName => {
                             allStops.add(stopName.toLowerCase());
                         });
                     }
@@ -353,8 +355,6 @@ footer {
             initializeFuse();
         });
         
-        
-
         // Function to suggest stops based on user input
         function suggestStops(inputId) {
             const inputValue = document.getElementById(inputId).value.trim().toLowerCase();
@@ -373,6 +373,7 @@ footer {
                 suggestionsContainer.style.display = 'none';
             }
         }
+        
         
         
         // Function to position the suggestions container
@@ -405,32 +406,32 @@ footer {
                 Object.keys(buses).forEach(busId => {
                     const busDetails = buses[busId].Current_Details;
                     if (busDetails && busDetails.Bus_Route) {
-                        const busRouteStops = Object.keys(busDetails.Bus_Route).map(stopName => stopName.toLowerCase());
+                        const orderedStops = busDetails.Bus_Route.Ordered_Stop_Names.map(stopName => stopName.toLowerCase());
                         const isReversed = busDetails.isReversed || false;
                         let startIndex, destinationIndex, currentStopIndex;
         
-                        // Check in normal route
                         if (!isReversed) {
-                            startIndex = busRouteStops.indexOf(start);
-                            destinationIndex = busRouteStops.indexOf(destination);
-                            currentStopIndex = busRouteStops.indexOf(busDetails.Current.toLowerCase());
+                            // Normal route
+                            startIndex = orderedStops.indexOf(start);
+                            destinationIndex = orderedStops.indexOf(destination);
+                            currentStopIndex = orderedStops.indexOf(busDetails.Current.toLowerCase());
         
-                            // Ensure the bus is at or before the start stop and the start stop is before the destination
-                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex && currentStopIndex <= startIndex) {
+                            // Ensure the bus is at or before the start stop and covers the destination
+                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex <= destinationIndex && currentStopIndex <= startIndex) {
                                 foundBuses.push(busId);
+                                console.log(`Bus ${busId} (normal route) matches: ${start} to ${destination}`);
                             }
-                        }
+                        } else {
+                            // Reversed route
+                            const reversedOrderedStops = [...orderedStops].reverse();
+                            startIndex = reversedOrderedStops.indexOf(start);
+                            destinationIndex = reversedOrderedStops.indexOf(destination);
+                            currentStopIndex = reversedOrderedStops.indexOf(busDetails.Current.toLowerCase());
         
-                        // Check in reversed route
-                        if (isReversed) {
-                            const reversedRouteStops = [...busRouteStops].reverse();
-                            startIndex = reversedRouteStops.indexOf(start);
-                            destinationIndex = reversedRouteStops.indexOf(destination);
-                            currentStopIndex = reversedRouteStops.indexOf(busDetails.Current.toLowerCase());
-        
-                            // Ensure the bus is at or before the start stop in the reversed route
-                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex < destinationIndex && currentStopIndex <= startIndex) {
+                            // Ensure the bus is at or before the start stop in reversed route and covers the destination
+                            if (startIndex !== -1 && destinationIndex !== -1 && startIndex <= destinationIndex && currentStopIndex <= startIndex) {
                                 foundBuses.push(busId);
+                                console.log(`Bus ${busId} (reversed route) matches: ${start} to ${destination}`);
                             }
                         }
                     } else {
@@ -449,6 +450,7 @@ footer {
             });
         }
         
+        // Suggestion click event handler
         document.getElementById('suggestions').addEventListener('click', (event) => {
             if (event.target.tagName === 'DIV') {
                 const inputId = event.target.getAttribute('data-input-id');
@@ -456,8 +458,6 @@ footer {
                 document.getElementById('suggestions').style.display = 'none';
             }
         });
-        
-          
         
     </script>
     

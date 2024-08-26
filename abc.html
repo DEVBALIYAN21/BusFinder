@@ -387,8 +387,6 @@
 // Ensure that each busId is updated only once per second
 
 const lastUpdateMap = {};
-
-// Ensure that each busId is updated only once per second
 function updateCurrentStop(busId) {
     const now = Date.now();
 
@@ -413,16 +411,16 @@ function updateCurrentStop(busId) {
             const isReversed = busDetails.isReversed || false;
 
             if (busLat && busLng) {
-                db.ref(`buses/${busId}/Current_Details/Bus_Route`).once('value')
+                // Fetch the stops and ordered stop names
+                db.ref(`buses/${busId}/Current_Details/Bus_Route/Stops`).once('value')
                     .then(stopsSnapshot => {
                         const stops = stopsSnapshot.val();
                         if (stops) {
+                            const stopNames = Object.keys(stops);
                             let closestStop = null;
                             let closestDistance = Infinity;
 
-                            const stopNames = Object.keys(stops);
-
-                            // Find the closest stop
+                            // Find the closest stop based on latitude and longitude
                             stopNames.forEach(stopName => {
                                 const stopLat = stops[stopName].lat;
                                 const stopLng = stops[stopName].long;
@@ -435,55 +433,67 @@ function updateCurrentStop(busId) {
                             });
 
                             if (closestStop) {
-                                const currentIndex = stopNames.indexOf(closestStop);
-                                let previousStopName, nextStopName;
+                                // Fetch the ordered stop names
+                                db.ref(`buses/${busId}/Current_Details/Bus_Route/Ordered_Stop_Names`).once('value')
+                                    .then(orderedStopsSnapshot => {
+                                        const orderedStopNames = orderedStopsSnapshot.val();
+                                        if (orderedStopNames) {
+                                            const currentIndex = orderedStopNames.indexOf(closestStop);
+                                            let previousStopName, nextStopName;
 
-                                // Determine previous and next stops based on direction
-                                if (!isReversed) {
-                                    previousStopName = currentIndex > 0 ? stopNames[currentIndex - 1] : 'Start of Route';
-                                    nextStopName = currentIndex < stopNames.length - 1 ? stopNames[currentIndex + 1] : 'End of Route';
+                                            // Determine previous and next stops based on direction
+                                            if (!isReversed) {
+                                                previousStopName = currentIndex > 0 ? orderedStopNames[currentIndex - 1] : 'Start of Route';
+                                                nextStopName = currentIndex < orderedStopNames.length - 1 ? orderedStopNames[currentIndex + 1] : 'End of Route';
 
-                                    // If we reached the last stop in the normal direction
-                                    if (nextStopName === 'End of Route') {
-                                        busRef.update({
-                                            isReversed: true,
-                                            Next: stopNames[currentIndex - 1] // Set next to the previous stop in reverse direction
-                                        }).then(() => {
-                                            console.log(`Reached the last stop in normal direction. Reversing direction for busId ${busId}.`);
-                                        }).catch(error => {
-                                            console.error('Error toggling route reversal:', error);
-                                        });
-                                        nextStopName = stopNames[currentIndex - 1];
-                                    }
-                                } else {
-                                    previousStopName = currentIndex < stopNames.length - 1 ? stopNames[currentIndex + 1] : 'End of Route';
-                                    nextStopName = currentIndex > 0 ? stopNames[currentIndex - 1] : 'Start of Route';
+                                                // If we reached the last stop in the normal direction
+                                                if (nextStopName === 'End of Route') {
+                                                    busRef.update({
+                                                        isReversed: true,
+                                                        Next: orderedStopNames[currentIndex - 1] // Set next to the previous stop in reverse direction
+                                                    }).then(() => {
+                                                        console.log(`Reached the last stop in normal direction. Reversing direction for busId ${busId}.`);
+                                                    }).catch(error => {
+                                                        console.error('Error toggling route reversal:', error);
+                                                    });
+                                                    nextStopName = orderedStopNames[currentIndex - 1];
+                                                }
+                                            } else {
+                                                previousStopName = currentIndex < orderedStopNames.length - 1 ? orderedStopNames[currentIndex + 1] : 'End of Route';
+                                                nextStopName = currentIndex > 0 ? orderedStopNames[currentIndex - 1] : 'Start of Route';
 
-                                    // If we reached the first stop in the reversed direction
-                                    if (nextStopName === 'Start of Route') {
-                                        busRef.update({
-                                            isReversed: false,
-                                            Next: stopNames[currentIndex + 1] // Set next to the next stop in the forward direction
-                                        }).then(() => {
-                                            console.log(`Reached the first stop in reversed direction. Reversing back to forward direction for busId ${busId}.`);
-                                        }).catch(error => {
-                                            console.error('Error toggling route reversal:', error);
-                                        });
-                                        nextStopName = stopNames[currentIndex + 1];
-                                    }
-                                }
+                                                // If we reached the first stop in the reversed direction
+                                                if (nextStopName === 'Start of Route') {
+                                                    busRef.update({
+                                                        isReversed: false,
+                                                        Next: orderedStopNames[currentIndex + 1] // Set next to the next stop in forward direction
+                                                    }).then(() => {
+                                                        console.log(`Reached the first stop in reversed direction. Reversing back to forward direction for busId ${busId}.`);
+                                                    }).catch(error => {
+                                                        console.error('Error toggling route reversal:', error);
+                                                    });
+                                                    nextStopName = orderedStopNames[currentIndex + 1];
+                                                }
+                                            }
 
-                                // Update Firebase with the new current, previous, and next stops
-                                busRef.update({
-                                    Current: closestStop,
-                                    Previous: previousStopName,
-                                    Next: nextStopName
-                                }).then(() => {
-                                    console.log('Updated current stop:', closestStop, previousStopName, nextStopName);
-                                    updateWebpageCurrentStop(closestStop, previousStopName, nextStopName);
-                                }).catch(error => {
-                                    console.error('Error updating current stop:', error);
-                                });
+                                            // Update Firebase with the new current, previous, and next stops
+                                            busRef.update({
+                                                Current: closestStop,
+                                                Previous: previousStopName,
+                                                Next: nextStopName
+                                            }).then(() => {
+                                                console.log('Updated current stop:', closestStop, previousStopName, nextStopName);
+                                                updateWebpageCurrentStop(closestStop, previousStopName, nextStopName);
+                                            }).catch(error => {
+                                                console.error('Error updating current stop:', error);
+                                            });
+                                        } else {
+                                            console.log('No ordered stops data found for the bus route.');
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error fetching ordered stops:', error);
+                                    });
                             } else {
                                 console.log('No stop found within the threshold. Current stop not updated.');
                             }
@@ -502,7 +512,6 @@ function updateCurrentStop(busId) {
             console.error('Error fetching bus current details:', error);
         });
 }
-
 
 // Function to calculate the distance between two lat/lng points in meters
 function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -536,8 +545,7 @@ function updateWebpageCurrentStop(currentStopName, previousStopName, nextStopNam
     if (nextStopElement) {
         nextStopElement.textContent = `Next Stop: ${nextStopName}`;
     }
-}        
-
+}
         // Helper function to get URL parameters
         function getParameterByName(name, url = window.location.href) {
             name = name.replace(/[\[\]]/g, '\\$&');
@@ -563,118 +571,51 @@ function updateWebpageCurrentStop(currentStopName, previousStopName, nextStopNam
                 loadingCircle.classList.add('show');
             }
     
-            // Fetch and display bus details for each busId
             Promise.all(busIdArray.map(busId => db.ref('buses/' + busId + '/Current_Details').once('value')))
-                .then(snapshots => {
-                    const detailsContainer = document.getElementById('busDetails');
-                    detailsContainer.innerHTML = '';
-    
-                    snapshots.forEach(snapshot => {
-                        const busDetails = snapshot.val();
-                       if (busDetails) {
-    const people = busDetails.people_count || 'N/A';
-    const busRoute = busDetails.Bus_Route || {}; // Changed to object
-    const currentStop = busDetails.Current || 'N/A';
-    const NextStop=busDetails.Next;
-    const previousStop = busDetails.Previous || 'N/A';
-    const latitude = busDetails.latitude || 'N/A';
-    const longitude = busDetails.longitude || 'N/A';
-    const reversed = busDetails.isReversed;
-    
-   // Convert bus route to an array of stop names
-const busRouteKeys = Object.keys(busRoute);
+    .then(snapshots => {
+        const detailsContainer = document.getElementById('busDetails');
+        detailsContainer.innerHTML = '';
 
-let predictedNextStop = 'End of Route';
-const currentIndex = busRouteKeys.indexOf(currentStop);
+        snapshots.forEach(snapshot => {
+            const busDetails = snapshot.val();
+            if (busDetails) {
+                const people = busDetails.people_count || 'N/A';
+                const currentStop = busDetails.Current || 'N/A';
+                const nextStop = busDetails.Next || 'N/A';
+                const previousStop = busDetails.Previous || 'N/A';
+                const latitude = busDetails.latitude || 'N/A';
+                const longitude = busDetails.longitude || 'N/A';
+                const reversed = busDetails.isReversed;
+                const routeid = busDetails.Route_Id;
+                const orderedStopNames = busDetails.Bus_Route.Ordered_Stop_Names || []; // Use Ordered_Stop_Names
 
-// Check if the route is reversed
-if (busDetails.isReversed) {
-    // Handle reversed route
-    if (currentIndex !== -1 && currentIndex > 0) {
-        predictedNextStop = busRouteKeys[currentIndex - 1];
-    }
-    
-    // Check if we are at the end of the reversed route
-    if (currentIndex === busRouteKeys.length - 1) {
-        // Reverse the route back to original order
-        const originalRoute = {};
-        busRouteKeys.forEach(key => {
-            originalRoute[key] = busRoute[key];
+                // Generate route details based on Ordered_Stop_Names
+                const routeDetails = orderedStopNames.map((stop, index, array) => `
+                    <li>${stop}</li>
+                    ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
+                `).join('');
+
+                detailsContainer.innerHTML += `
+                    <div class="bus-card">
+                        <h2 style="color: #003366; font-size: 2em; font-weight: bold; margin-bottom: 10px;">
+                            <i class="fas fa-bus icon" style="color: #00bfae; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4); font-size: 2.2em; margin-right: 10px; transform: rotate(10deg);"></i>
+                            Bus ID: ${routeid} Details
+                        </h2>
+                         <p><i class="fas fa-bus icon gradient-icon"></i> Vehicle Number: ${snapshot.ref.parent.key}</p>
+                        <p><i class="fas fa-users icon gradient-icon"></i> People Count: ${people}</p> 
+                        <p><i class="fas fa-arrow-right icon gradient-icon"></i> Current Stop: ${currentStop}</p>
+                        <p><i class="fas fa-arrow-right icon gradient-icon"></i> Next Stop: ${nextStop}</p>
+                        <button class="toggle-route btn btn-primary" data-id="${snapshot.ref.parent.key}">Show Route</button>
+                        <button class="btn btn-success get-directions" data-id="${snapshot.ref.parent.key}">Get Directions</button>
+                       <div class="route-details" id="route-${snapshot.ref.parent.key}" style="display: none;">
+                            <ul>
+                                ${routeDetails}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
         });
-
-        db.ref(`buses/${snapshot.ref.parent.key}/Current_Details`).update({
-            Bus_Route: originalRoute,
-            isReversed: false
-        }).then(() => {
-            console.log("Bus route reversed back to original order successfully.");
-        }).catch(error => {
-            console.error("Error reversing bus route back: ", error);
-        });
-        
-        // Set the predicted next stop to the previous stop in normal mode
-        predictedNextStop = previousStop || 'N/A';
-    }
-} else {
-    // Handle normal route
-    if (currentIndex !== -1 && currentIndex < busRouteKeys.length - 1) {
-        predictedNextStop = busRouteKeys[currentIndex + 1];
-    }
-    
-    // Check if we are at the end of the route
-    if (currentIndex === busRouteKeys.length - 1) {
-        // Reverse the route and update the bus details
-        const reversedRoute = {};
-        for (let i = busRouteKeys.length - 1; i >= 0; i--) {
-            reversedRoute[busRouteKeys[i]] = busRoute[busRouteKeys[i]];
-        }
-
-        db.ref(`buses/${snapshot.ref.parent.key}/Current_Details`).update({
-            Bus_Route: reversedRoute,
-            isReversed: true
-        }).then(() => {
-            console.log("Bus route reversed successfully.");
-        }).catch(error => {
-            console.error("Error reversing bus route: ", error);
-        });
-        
-        // Set the predicted next stop to the previous stop in reversed mode
-        predictedNextStop = busRouteKeys[currentIndex - 1] || 'N/A';
-    }
-}
-
-// Update the webpage with the predicted next stop
-
-
-                            detailsContainer.innerHTML += `
-                                <div class="bus-card">
-                                    <h2 style="color: #003366; font-size: 2em; font-weight: bold; margin-bottom: 10px;">
-                                        <i class="fas fa-bus icon" style="color: #00bfae; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4); font-size: 2.2em; margin-right: 10px; transform: rotate(10deg);"></i>
-                                        Bus ID: ${snapshot.ref.parent.key} Details
-                                    </h2>
-                                    <p><i class="fas fa-users icon gradient-icon"></i> People Count: ${people}</p>
-                                    <p><i class="fas fa-arrow-right icon gradient-icon"></i> Current Stop: ${currentStop}</p>
-                                    <p><i class="fas fa-arrow-right icon gradient-icon"></i> Next Stop: ${NextStop}</p>
-                                    <button class="toggle-route btn btn-primary" data-id="${snapshot.ref.parent.key}">Show Route</button>
-                                    <button class="btn btn-success get-directions" data-id="${snapshot.ref.parent.key}">Get Directions</button>
-                                   <div class="route-details" id="route-${snapshot.ref.parent.key}" style="display: none;">
-    <ul>
-        ${reversed ? 
-            busRouteKeys.slice().reverse().map((stop, index, array) => `
-                <li>${stop}</li>
-                ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
-            `).join('') 
-            : 
-            busRouteKeys.map((stop, index, array) => `
-                <li>${stop}</li>
-                ${index < array.length - 1 ? '<li class="arrow">→</li>' : ''}
-            `).join('')
-        }
-                                        </ul>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    });
     
                     // Hide loading circle
                     if (loadingCircle) {
