@@ -105,10 +105,14 @@ body {
 /* Form Styling */
 .form-container {
     background: rgba(255, 255, 255, 0.9);
-    padding: 30px;
+    
+    padding-top: 25px;
+    padding-bottom: 100px;
     border-radius: 20px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
     display: inline-block;
+    width: 100%; /* Make it full width of the container */
+    max-width: 600px; /* Increase maximum width */
     animation: pop-up 0.5s ease-in-out;
 }
 
@@ -132,7 +136,7 @@ body {
 .form-group {
     display: flex;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: 0px;
     flex-wrap: wrap;
 }
 
@@ -140,14 +144,14 @@ body {
     width: 100%;
     max-width: 400px;
     padding: 15px;
-    margin: 10px;
+    margin: 5px;
     border-radius: 30px;
     border: none;
     font-size: 16px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.form-group button {
+.form-group .search {
     padding: 15px 30px;
     background-color: #ff5d5d;
     color: white;
@@ -157,7 +161,7 @@ body {
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-    margin-top: 10px;
+    margin-top: 50px;
 }
 
 footer {
@@ -200,6 +204,35 @@ footer {
 #suggestions div:hover {
     background-color: #f9f9f9; /* Light gray for hover effect */
 }
+.form-group {
+    display: flex;
+    justify-content: center;
+
+}
+
+.form-group input {
+    width: 100%;
+    max-width: 400px;
+   
+    border-radius: 30px;
+    border: none;
+    font-size: 16px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+#swapButton {
+    background-color: transparent;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+#swapButton img {
+    width: 30px; /* Adjust size */
+    height: 30px;
+    display: block; /* Ensures the image is centered within the button */
+}
+
+
 
 
 /* Mobile Styles */
@@ -208,6 +241,31 @@ footer {
         width: calc(100% - 20px); /* Adjust width for mobile */
         left: 10px; /* Align suggestions container properly on mobile */
         top: calc(100% + 10px); /* Position suggestions container below input */
+    }
+    .form-container {
+        background: rgba(255, 255, 255, 0.9);
+        padding-top: 50px; 
+        padding-left: 5px;
+        padding-bottom: 50px;/* Increase padding */
+        padding-right: 5px;
+        border-radius: 20px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        display: inline-block;
+        width: 100%; /* Make it full width of the container */
+        max-width: 400px; /* Increase maximum width */
+        animation: pop-up 0.5s ease-in-out;
+    }
+    .form-group .search {
+        padding: 15px 30px;
+        background-color: #ff5d5d;
+        color: white;
+        border: none;
+        border-radius: 30px;
+        font-size: 18px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        margin-top: 10px;
     }
     .navbar {
         flex-direction: column;
@@ -287,14 +345,26 @@ footer {
             <form id="routeForm" autocomplete="off">
                 <div class="form-group">
                     <input type="text" id="start" placeholder="Starting From" oninput="suggestStops('start')">
+                </div>
+                <div class="form-group">
+                    <button type="button" id="swapButton" onclick="swap()">
+                        <img src="switch.png" alt="Swap" />
+                    </button>
+                    
+                </div>
+                <div class="form-group">
                     <input type="text" id="destination" placeholder="Travelling To" oninput="suggestStops('destination')">
+                </div>
+                <div class="form-group">
                     <div id="suggestions" style="display: none;"></div>
                 </div>
                 <div class="form-group">
-                    <button type="button" onclick="searchRoutes()">Search Routes</button>
+                    <button class="search" type="button" onclick="searchRoutes()">Search Routes</button>
                 </div>
             </form>
         </div>
+        
+        
     </div>
 
     <!-- Suggestions Container -->
@@ -391,7 +461,14 @@ footer {
             suggestionsContainer.style.width = `${inputElement.offsetWidth}px`;
         }
         
-        
+        function swap(){
+            console.log("called");
+            let a=document.getElementById("start");
+            let b = document.getElementById("destination");
+            let temp = a.value;
+            a.value=b.value;
+            b.value=temp;
+        }
         function searchRoutes() {
             const start = document.getElementById('start').value.trim().toLowerCase();
             const destination = document.getElementById('destination').value.trim().toLowerCase();

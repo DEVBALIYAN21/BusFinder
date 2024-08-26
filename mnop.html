@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div class="form-group">
+        <input type="text" id="start" placeholder="Starting From">
+        <input type="text" id="destination" placeholder="Travelling To" >
+        <button onclick="swap()">Swap</button>
+    </div>
+</body>
+<script>
+    function swap(){
+        console.log("called");
+        let a=document.getElementById("start");
+        let b = document.getElementById("destination");
+        let temp = a.value;
+        a.value=b.value;
+        b.value=temp;
+    }
+</script>
+</html>
